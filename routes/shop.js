@@ -351,13 +351,22 @@ router.post("/removeFromCart", async (req, res) => {
   const { productId } = req.body;
 
   try {
-    const deletedCartItem = await CartItem.findOneAndRemove({ productId });
-    if (!deletedCartItem) {
+    const cartItem = await CartItem.findOne({ productId });
+
+    if (!cartItem) {
       console.log("Cart item not found");
-      return res.json({ success: false, theError: "Cart item not found" });
+      return res.json({ success: false, message: "Cart item not found" });
     }
 
-    console.log("Removed product from cart in database");
+    // Remove the cart item if quantity is 1, otherwise decrement quantity
+    if (cartItem.quantity && cartItem.quantity > 1) {
+      cartItem.quantity -= 1;
+      await cartItem.save();
+    } else {
+      await CartItem.findOneAndRemove({ productId });
+    }
+
+    console.log("Updated cart item in database");
     res.json({ success: true });
   } catch (err) {
     console.log("Failed to remove product from cart:", err);
