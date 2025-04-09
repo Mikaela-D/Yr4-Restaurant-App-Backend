@@ -39,6 +39,15 @@ const logSchema = new Schema({
   },
 });
 
+const cartItemSchema = new Schema({
+  productId: { type: String, required: true },
+  name: { type: String, required: true },
+  price: { type: String, required: true },
+  addedAt: { type: Date, default: Date.now },
+});
+
+const CartItem = mongoose.model("cartItem", cartItemSchema);
+
 const Log = mongoose.model("log", logSchema);
 const Product = mongoose.model("product", productSchema);
 const User = mongoose.model("user", userSchema);
@@ -307,6 +316,21 @@ router.get("/logs", async (req, res) => {
   } catch (err) {
     console.error("Failed to fetch logs:", err);
     res.json({ success: false, message: "Failed to fetch logs" });
+  }
+});
+
+router.post("/addToCart", async (req, res) => {
+  const { productId, name, price } = req.body;
+
+  try {
+    const newCartItem = new CartItem({ productId, name, price });
+    await newCartItem.save();
+
+    console.log("Added product to cart in database");
+    res.json({ success: true });
+  } catch (err) {
+    console.log("Failed to add product to cart:", err);
+    res.json({ success: false, theError: err });
   }
 });
 
