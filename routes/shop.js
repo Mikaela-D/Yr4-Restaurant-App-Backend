@@ -26,6 +26,20 @@ const userSchema = new Schema({
   password: { type: String, required: true },
 });
 
+const logSchema = new Schema({
+  action: { type: String, required: true }, // e.g., "ADD_PRODUCT", "UPDATE_PRODUCT", "DELETE_PRODUCT"
+  details: { type: Object, required: true }, // Details of the action (e.g., product data)
+  timestamp: {
+    type: Date,
+    default: () => {
+      const now = new Date();
+      now.setHours(now.getHours() + 1); // Adjust by +1 hour
+      return now;
+    },
+  },
+});
+
+const Log = mongoose.model("log", logSchema);
 const Product = mongoose.model("product", productSchema);
 const User = mongoose.model("user", userSchema);
 
@@ -93,30 +107,46 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.get("/addProduct", (req, res, next) => {
-  generateUniqueId()
-    .then((newId) => {
-      return new Product({
-        ourId: newId,
-        name: "widget",
-        price: 3.95,
-        category: "gadgets",
-        brand: "widgetBrand",
-        description: "A useful widget",
-        color: "red",
-        weight: "200g",
-        availability: "In stock",
-        size: "large",
-      }).save();
-    })
-    .then(() => {
-      console.log("saved product to database");
-      res.redirect("/");
-    })
-    .catch((err) => {
-      console.log("failed to add product: " + err);
-      res.redirect("/");
+router.post("/addProduct", async (req, res, next) => {
+  const {
+    name,
+    price,
+    category,
+    brand,
+    description,
+    color,
+    weight,
+    availability,
+  } = req.body;
+
+  try {
+    const newId = await generateUniqueId();
+    const newProduct = new Product({
+      ourId: newId,
+      name,
+      price,
+      category,
+      brand,
+      description,
+      color,
+      weight,
+      availability,
     });
+    await newProduct.save();
+
+    // Log the action
+    const logEntry = new Log({
+      action: "ADD_PRODUCT",
+      details: newProduct,
+    });
+    await logEntry.save();
+
+    console.log("Saved product to database and logged action");
+    res.json({ success: true });
+  } catch (err) {
+    console.log("Failed to add product:", err);
+    res.json({ success: false, theError: err });
+  }
 });
 
 router.get("/", (req, res, next) => {
@@ -229,7 +259,15 @@ router.post("/updateSpecificProduct", async (req, res, next) => {
       console.log("Product not found");
       return res.json({ success: false, theError: "Product not found" });
     }
-    console.log("Updated product in database:", updatedProduct);
+
+    // Log the action
+    const logEntry = new Log({
+      action: "UPDATE_PRODUCT",
+      details: updatedProduct,
+    });
+    await logEntry.save();
+
+    console.log("Updated product in database and logged action");
     res.json({ success: true, updatedProduct });
   } catch (err) {
     console.log("Failed to update product:", err);
@@ -246,11 +284,29 @@ router.post("/deleteSpecificProduct", async (req, res, next) => {
       console.log("Product not found");
       return res.json({ success: false, theError: "Product not found" });
     }
-    console.log("Deleted product from database:", deletedProduct);
+
+    // Log the action
+    const logEntry = new Log({
+      action: "DELETE_PRODUCT",
+      details: deletedProduct,
+    });
+    await logEntry.save();
+
+    console.log("Deleted product from database and logged action");
     res.json({ success: true });
   } catch (err) {
     console.log("Failed to delete product:", err);
     res.json({ success: false, theError: err });
+  }
+});
+
+router.get("/logs", async (req, res) => {
+  try {
+    const logs = await Log.find().sort({ timestamp: -1 }); // Sort by most recent
+    res.json({ success: true, logs });
+  } catch (err) {
+    console.error("Failed to fetch logs:", err);
+    res.json({ success: false, message: "Failed to fetch logs" });
   }
 });
 
