@@ -319,6 +319,16 @@ router.get("/logs", async (req, res) => {
   }
 });
 
+router.get("/getCartItems", async (req, res) => {
+  try {
+    const cartItems = await CartItem.find();
+    res.json({ success: true, cartItems });
+  } catch (err) {
+    console.log("Failed to fetch cart items:", err);
+    res.json({ success: false, theError: err });
+  }
+});
+
 router.post("/addToCart", async (req, res) => {
   const { productId, name, price } = req.body;
 
