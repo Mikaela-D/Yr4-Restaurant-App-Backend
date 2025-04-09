@@ -323,7 +323,13 @@ router.get("/logs", async (req, res) => {
 router.get("/getCartItems", async (req, res) => {
   try {
     const cartItems = await CartItem.find();
-    res.json({ success: true, cartItems });
+    res.json({
+      success: true,
+      cartItems: cartItems.map((item) => ({
+        ...item.toObject(),
+        productId: item.productId || item._id, // Ensure productId is set
+      })),
+    });
   } catch (err) {
     console.log("Failed to fetch cart items:", err);
     res.json({ success: false, theError: err });
@@ -379,11 +385,11 @@ router.post("/removeFromCart", async (req, res) => {
     }
 
     // Remove the cart item if quantity is 1, otherwise decrement quantity
-    if (cartItem.quantity && cartItem.quantity > 1) {
+    if (cartItem.quantity > 1) {
       cartItem.quantity -= 1;
       await cartItem.save();
     } else {
-      await CartItem.findOneAndRemove({ productId });
+      await CartItem.deleteOne({ productId });
     }
 
     console.log("Updated cart item in database");
