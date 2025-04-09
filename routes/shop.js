@@ -16,7 +16,7 @@ const productSchema = new Schema({
   description: { type: String, required: false },
   color: { type: String, required: false },
   weight: { type: String, required: false },
-  availability: { type: String, required: false },
+  availability: { type: Number, required: true },
   anArray: { type: Array, required: false },
   anObject: { type: Object, required: false },
 });
@@ -323,10 +323,23 @@ router.post("/addToCart", async (req, res) => {
   const { productId, name, price } = req.body;
 
   try {
+    const product = await Product.findOne({ ourId: productId });
+
+    if (!product) {
+      return res.json({ success: false, message: "Product not found" });
+    }
+
+    if (product.availability <= 0) {
+      return res.json({ success: false, message: "Product is out of stock" });
+    }
+
     const newCartItem = new CartItem({ productId, name, price });
     await newCartItem.save();
 
-    console.log("Added product to cart in database");
+    product.availability -= 1; // Deduct availability
+    await product.save();
+
+    console.log("Added product to cart and updated availability");
     res.json({ success: true });
   } catch (err) {
     console.log("Failed to add product to cart:", err);
