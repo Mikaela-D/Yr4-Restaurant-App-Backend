@@ -384,6 +384,17 @@ router.post("/removeFromCart", async (req, res) => {
       return res.json({ success: false, message: "Cart item not found" });
     }
 
+    const product = await Product.findOne({ ourId: productId });
+
+    if (!product) {
+      console.log("Product not found");
+      return res.json({ success: false, message: "Product not found" });
+    }
+
+    // Increment product availability
+    product.availability += 1;
+    await product.save();
+
     // Remove the cart item if quantity is 1, otherwise decrement quantity
     if (cartItem.quantity > 1) {
       cartItem.quantity -= 1;
@@ -392,7 +403,7 @@ router.post("/removeFromCart", async (req, res) => {
       await CartItem.deleteOne({ productId });
     }
 
-    console.log("Updated cart item in database");
+    console.log("Updated cart item and product availability in database");
     res.json({ success: true });
   } catch (err) {
     console.log("Failed to remove product from cart:", err);
