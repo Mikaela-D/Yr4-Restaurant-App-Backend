@@ -1,5 +1,4 @@
 // C:\Users\Mikaela\Cloud Computing\Week7JsonMongoose\Week7JsonMongoose\app.js
-
 const path = require("path");
 const mongoose = require("mongoose");
 
