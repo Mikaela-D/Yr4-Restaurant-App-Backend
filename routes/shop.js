@@ -334,4 +334,22 @@ router.post("/addToCart", async (req, res) => {
   }
 });
 
+router.post("/removeFromCart", async (req, res) => {
+  const { productId } = req.body;
+
+  try {
+    const deletedCartItem = await CartItem.findOneAndRemove({ productId });
+    if (!deletedCartItem) {
+      console.log("Cart item not found");
+      return res.json({ success: false, theError: "Cart item not found" });
+    }
+
+    console.log("Removed product from cart in database");
+    res.json({ success: true });
+  } catch (err) {
+    console.log("Failed to remove product from cart:", err);
+    res.json({ success: false, theError: err });
+  }
+});
+
 exports.routes = router;
