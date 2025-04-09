@@ -336,41 +336,44 @@ router.get("/getCartItems", async (req, res) => {
   }
 });
 
-router.post("/addToCart", async (req, res) => {
+router.post("/addToCart", (req, res) => {
   const { productId, name, price } = req.body;
 
-  try {
-    const product = await Product.findOne({ ourId: productId });
+  Product.findOne({ ourId: productId })
+    .then((product) => {
+      if (!product) {
+        return res.json({ success: false, message: "Product not found" });
+      }
 
-    if (!product) {
-      return res.json({ success: false, message: "Product not found" });
-    }
+      if (product.availability <= 0) {
+        return res.json({ success: false, message: "Product is out of stock" });
+      }
 
-    if (product.availability <= 0) {
-      return res.json({ success: false, message: "Product is out of stock" });
-    }
-
-    const existingCartItem = await CartItem.findOne({ productId });
-
-    if (existingCartItem) {
-      // Increment quantity if the item already exists in the cart
-      existingCartItem.quantity += 1;
-      await existingCartItem.save();
-    } else {
-      // Create a new cart item if it doesn't exist
-      const newCartItem = new CartItem({ productId, name, price });
-      await newCartItem.save();
-    }
-
-    product.availability -= 1; // Deduct availability
-    await product.save();
-
-    console.log("Added product to cart and updated availability");
-    res.json({ success: true });
-  } catch (err) {
-    console.log("Failed to add product to cart:", err);
-    res.json({ success: false, theError: err });
-  }
+      return CartItem.findOne({ productId })
+        .then((existingCartItem) => {
+          if (existingCartItem) {
+            // Increment quantity if the item already exists in the cart
+            existingCartItem.quantity += 1;
+            return existingCartItem.save();
+          } else {
+            // Create a new cart item if it doesn't exist
+            const newCartItem = new CartItem({ productId, name, price });
+            return newCartItem.save();
+          }
+        })
+        .then(() => {
+          product.availability -= 1; // Deduct availability
+          return product.save();
+        });
+    })
+    .then(() => {
+      console.log("Added product to cart and updated availability");
+      res.json({ success: true });
+    })
+    .catch((err) => {
+      console.log("Failed to add product to cart:", err);
+      res.json({ success: false, theError: err });
+    });
 });
 
 router.post("/removeFromCart", async (req, res) => {
@@ -379,6 +382,7 @@ router.post("/removeFromCart", async (req, res) => {
   try {
     const cartItem = await CartItem.findOne({ productId });
 
+    // Check if the cart item exists
     if (!cartItem) {
       console.log("Cart item not found");
       return res.json({ success: false, message: "Cart item not found" });
@@ -386,6 +390,7 @@ router.post("/removeFromCart", async (req, res) => {
 
     const product = await Product.findOne({ ourId: productId });
 
+    // Check if the product exists
     if (!product) {
       console.log("Product not found");
       return res.json({ success: false, message: "Product not found" });
