@@ -43,6 +43,7 @@ const cartItemSchema = new Schema({
   productId: { type: String, required: true },
   name: { type: String, required: true },
   price: { type: String, required: true },
+  quantity: { type: Number, default: 1 },
   addedAt: { type: Date, default: Date.now },
 });
 
@@ -343,8 +344,17 @@ router.post("/addToCart", async (req, res) => {
       return res.json({ success: false, message: "Product is out of stock" });
     }
 
-    const newCartItem = new CartItem({ productId, name, price });
-    await newCartItem.save();
+    const existingCartItem = await CartItem.findOne({ productId });
+
+    if (existingCartItem) {
+      // Increment quantity if the item already exists in the cart
+      existingCartItem.quantity += 1;
+      await existingCartItem.save();
+    } else {
+      // Create a new cart item if it doesn't exist
+      const newCartItem = new CartItem({ productId, name, price });
+      await newCartItem.save();
+    }
 
     product.availability -= 1; // Deduct availability
     await product.save();
