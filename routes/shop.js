@@ -394,4 +394,15 @@ router.post("/removeFromCart", async (req, res) => {
   }
 });
 
+router.post("/clearCart", async (req, res) => {
+  try {
+    await CartItem.deleteMany(); // Remove all items from the cart
+    console.log("Cleared all items from the cart");
+    res.json({ success: true });
+  } catch (err) {
+    console.log("Failed to clear cart:", err);
+    res.json({ success: false, theError: err });
+  }
+});
+
 exports.routes = router;
