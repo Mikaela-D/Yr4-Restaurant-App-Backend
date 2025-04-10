@@ -213,7 +213,7 @@ router.post("/addProduct", async (req, res, next) => {
     color,
     weight,
     availability,
-  } = req.body;
+  } = req.body; // Destructure the request body
 
   try {
     const newId = await generateUniqueId();
@@ -342,6 +342,7 @@ router.post("/addToCart", (req, res) => {
   Product.findOne({ ourId: productId })
     .then((product) => {
       if (!product) {
+        // Check if product exists
         return res.json({ success: false, message: "Product not found" });
       }
 
@@ -351,9 +352,10 @@ router.post("/addToCart", (req, res) => {
 
       return CartItem.findOne({ productId })
         .then((existingCartItem) => {
+          // Check if item already exists in cart
           if (existingCartItem) {
             // Increment quantity if the item already exists in the cart
-            existingCartItem.quantity += 1;
+            existingCartItem.quantity += 1; // Increase quantity in cart
             return existingCartItem.save();
           } else {
             // Create a new cart item if it doesn't exist
@@ -380,7 +382,7 @@ router.post("/removeFromCart", async (req, res) => {
   const { productId } = req.body;
 
   try {
-    const cartItem = await CartItem.findOne({ productId });
+    const cartItem = await CartItem.findOne({ productId }); // Find the cart item
 
     // Check if the cart item exists
     if (!cartItem) {
@@ -388,7 +390,7 @@ router.post("/removeFromCart", async (req, res) => {
       return res.json({ success: false, message: "Cart item not found" });
     }
 
-    const product = await Product.findOne({ ourId: productId });
+    const product = await Product.findOne({ ourId: productId }); // Find the product
 
     // Check if the product exists
     if (!product) {
@@ -396,13 +398,12 @@ router.post("/removeFromCart", async (req, res) => {
       return res.json({ success: false, message: "Product not found" });
     }
 
-    // Increment product availability
-    product.availability += 1;
+    product.availability += 1; // Increase availability in inventory
     await product.save();
 
     // Remove the cart item if quantity is 1, otherwise decrement quantity
     if (cartItem.quantity > 1) {
-      cartItem.quantity -= 1;
+      cartItem.quantity -= 1; // Decrease quantity in cart
       await cartItem.save();
     } else {
       await CartItem.deleteOne({ productId });
